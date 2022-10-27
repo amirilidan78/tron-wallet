@@ -3,8 +3,9 @@ package tronWallet
 import (
 	"fmt"
 	"github.com/fbsobreira/gotron-sdk/pkg/address"
-	"strconv"
 	"strings"
+	"sync"
+	"time"
 	"tronWallet/api"
 	"tronWallet/enums"
 )
@@ -28,6 +29,8 @@ type CrawlTransaction struct {
 
 func (c *Crawler) ScanBlocks(count int) ([]CrawlResult, error) {
 
+	var wg sync.WaitGroup
+
 	var allTransactions [][]CrawlTransaction
 
 	block, err := api.CurrentBlock(c.Network)
@@ -36,33 +39,44 @@ func (c *Crawler) ScanBlocks(count int) ([]CrawlResult, error) {
 	}
 
 	// check block for transaction
-	txs, err := c.getBlockTransactions(block)
-	allTransactions = append(allTransactions, txs)
+	allTransactions = append(allTransactions, c.extractOurTransactionsFromBlock(block))
 	if err != nil {
 		return nil, err
 	}
 
+	blockNumber := int32(block.BlockHeader.RawData.Number)
+
 	for i := count; i > 0; i-- {
 
-		block, err = api.GetBlock(c.Network, block.BlockHeader.RawData.ParentHash)
-		if err != nil {
-			return nil, err
-		}
+		wg.Add(1)
 
-		fmt.Println("Scanning block number " + strconv.FormatInt(block.BlockHeader.RawData.Number, 10))
+		blockNumber = blockNumber - 1
 
-		// check block for transaction
-		txs, err = c.getBlockTransactions(block)
-		allTransactions = append(allTransactions, txs)
-		if err != nil {
-			return nil, err
-		}
+		// sleep to avoid 503 error
+		time.Sleep(100 * time.Millisecond)
+		go c.getBlockData(&wg, &allTransactions, blockNumber)
 	}
+
+	wg.Wait()
 
 	return c.prepareCrawlResultFromTransactions(allTransactions), nil
 }
 
-func (c *Crawler) getBlockTransactions(block api.BlockResponseBody) ([]CrawlTransaction, error) {
+func (c *Crawler) getBlockData(wg *sync.WaitGroup, allTransactions *[][]CrawlTransaction, num int32) {
+
+	defer wg.Done()
+
+	block, err := api.GetBlockByNumber(c.Network, num)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	// check block for transaction
+	*allTransactions = append(*allTransactions, c.extractOurTransactionsFromBlock(block))
+}
+
+func (c *Crawler) extractOurTransactionsFromBlock(block api.BlockResponseBody) []CrawlTransaction {
 
 	var txs []CrawlTransaction
 
@@ -70,13 +84,11 @@ func (c *Crawler) getBlockTransactions(block api.BlockResponseBody) ([]CrawlTran
 
 		// if transaction is not success
 		if transaction.Ret[0].ContractRet != enums.SuccessTransactionRetStatus {
-			fmt.Println(transaction.TxID + " transaction is not success")
 			continue
 		}
 
 		// if transaction is not tron transfer
 		if transaction.RawData.Contract[0].Type != enums.TransferContract {
-			fmt.Println(transaction.TxID + " transaction is token transfer")
 			continue
 		}
 
@@ -94,20 +106,17 @@ func (c *Crawler) getBlockTransactions(block api.BlockResponseBody) ([]CrawlTran
 
 		for _, ourAddress := range c.Addresses {
 			if ourAddress == toAddress {
-				fmt.Println(toAddress + " address is our address")
 				txs = append(txs, CrawlTransaction{
 					TxId:        transaction.TxID,
 					FromAddress: fromAddress,
 					ToAddress:   toAddress,
 					Amount:      transaction.RawData.Contract[0].Parameter.Value.Amount,
 				})
-			} else {
-				fmt.Println(toAddress + " address is not our address")
 			}
 		}
 	}
 
-	return txs, nil
+	return txs
 }
 
 func (c *Crawler) prepareCrawlResultFromTransactions(transactions [][]CrawlTransaction) []CrawlResult {

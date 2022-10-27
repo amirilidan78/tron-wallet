@@ -34,6 +34,11 @@ type GetBlockById struct {
 	Visible bool   `json:"visible"`
 }
 
+type GetBlockByNumRequestBody struct {
+	Num     int32 `json:"num"`
+	Visible bool  `json:"visible"`
+}
+
 func CurrentBlock(network enums.Network) (BlockResponseBody, error) {
 
 	url := string(network) + "/wallet/getnowblock"
@@ -74,6 +79,40 @@ func GetBlock(network enums.Network, hex string) (BlockResponseBody, error) {
 
 	requestBody := GetBlockById{
 		Value:   hex,
+		Visible: true,
+	}
+
+	responseBody := BlockResponseBody{}
+
+	httpResponse, _, statusCode, err := httpClient.NewHttpClient().HttpPost(url, requestBody, header)
+
+	if statusCode != http.StatusOK {
+		return responseBody, errors.New(fmt.Sprintf("http status code is not 200 it is %d", statusCode))
+	}
+
+	if err != nil {
+		return responseBody, err
+	}
+
+	err = json.Unmarshal(httpResponse, &responseBody)
+	if err != nil {
+		return responseBody, err
+	}
+
+	return responseBody, nil
+}
+
+func GetBlockByNumber(network enums.Network, num int32) (BlockResponseBody, error) {
+
+	url := string(network) + "/wallet/getblockbynum"
+
+	header := map[string]string{
+		"Content-Type": "application/json",
+		"Accept":       "application/json",
+	}
+
+	requestBody := GetBlockByNumRequestBody{
+		Num:     num,
 		Visible: true,
 	}
 

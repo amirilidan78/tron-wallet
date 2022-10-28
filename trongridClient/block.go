@@ -1,4 +1,4 @@
-package api
+package trongridClient
 
 import (
 	"encoding/json"

@@ -6,8 +6,8 @@ import (
 	"strings"
 	"sync"
 	"time"
-	"tronWallet/api"
 	"tronWallet/enums"
+	"tronWallet/trongridClient"
 )
 
 type Crawler struct {
@@ -33,7 +33,7 @@ func (c *Crawler) ScanBlocks(count int) ([]CrawlResult, error) {
 
 	var allTransactions [][]CrawlTransaction
 
-	block, err := api.CurrentBlock(c.Network)
+	block, err := trongridClient.CurrentBlock(c.Network)
 	if err != nil {
 		return nil, err
 	}
@@ -66,7 +66,7 @@ func (c *Crawler) getBlockData(wg *sync.WaitGroup, allTransactions *[][]CrawlTra
 
 	defer wg.Done()
 
-	block, err := api.GetBlockByNumber(c.Network, num)
+	block, err := trongridClient.GetBlockByNumber(c.Network, num)
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -76,7 +76,7 @@ func (c *Crawler) getBlockData(wg *sync.WaitGroup, allTransactions *[][]CrawlTra
 	*allTransactions = append(*allTransactions, c.extractOurTransactionsFromBlock(block))
 }
 
-func (c *Crawler) extractOurTransactionsFromBlock(block api.BlockResponseBody) []CrawlTransaction {
+func (c *Crawler) extractOurTransactionsFromBlock(block trongridClient.BlockResponseBody) []CrawlTransaction {
 
 	var txs []CrawlTransaction
 

@@ -4,11 +4,12 @@ import (
 	"crypto/ecdsa"
 	"encoding/hex"
 	"errors"
+	"fmt"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/mr-tron/base58"
-	"tronWallet/api"
+	"google.golang.org/protobuf/encoding/protojson"
 	"tronWallet/enums"
+	"tronWallet/trongridClient"
 	"tronWallet/util"
 )
 
@@ -31,7 +32,7 @@ func GenerateTronWallet(network enums.Network) *TronWallet {
 	publicKeyHex := convertPublicKeyToHex(publicKey)
 
 	address := getAddressFromPublicKey(publicKey)
-	addressBase58 := convertAddressToBase58(address)
+	addressBase58 := util.HexToBase58(address)
 
 	return &TronWallet{
 		Network:       network,
@@ -53,7 +54,7 @@ func CreateTronWallet(network enums.Network, privateKeyHex string) *TronWallet {
 	publicKeyHex := convertPublicKeyToHex(publicKey)
 
 	address := getAddressFromPublicKey(publicKey)
-	addressBase58 := convertAddressToBase58(address)
+	addressBase58 := util.HexToBase58(address)
 
 	return &TronWallet{
 		Network:       network,
@@ -131,20 +132,56 @@ func getAddressFromPublicKey(publicKey *ecdsa.PublicKey) string {
 	return address
 }
 
-func convertAddressToBase58(address string) string {
-
-	addb, _ := hex.DecodeString(address)
-	hash1 := util.S256(util.S256(addb))
-	secret := hash1[:4]
-	for _, v := range secret {
-		addb = append(addb, v)
-	}
-
-	return base58.Encode(addb)
-}
-
 // balance
 
-func (t *TronWallet) Balance() (api.GetAccountResponseBody, error) {
-	return api.GetAddressBalance(t.Network, t.AddressBase58)
+func (t *TronWallet) Balance() (trongridClient.GetAccountResponseBody, error) {
+	return trongridClient.GetAddressBalance(t.Network, t.AddressBase58)
+}
+
+// transaction
+
+func (t *TronWallet) Transfer(toAddressBase58 string, amountInSun int64) (string, error) {
+
+	toAddress := util.Base58ToHex(toAddressBase58)
+
+	privateBytes, err := t.PrivateKeyBytes()
+	if err != nil {
+		return "", fmt.Errorf("hex decode private key error: %v", err)
+	}
+
+	privateRCDSA, err := t.PrivateKeyRCDSA()
+	if err != nil {
+		return "", fmt.Errorf("RCDSA private key error: %v", err)
+	}
+
+	pb, err := createTransactionInput(t.Network, t.Address, privateBytes, toAddress, amountInSun, enums.TrxTransferFeeLimit)
+	if err != nil {
+		return "", fmt.Errorf("creating tx pb error: %v", err)
+	}
+
+	signed, txId, err := signTransaction(pb, privateRCDSA)
+	if err != nil {
+		return "", fmt.Errorf("signing transaction error: %v", err)
+	}
+
+	RawData := protojson.Format(pb)
+	RawDataHex := hex.EncodeToString([]byte(RawData))
+
+	req := trongridClient.BroadcastTransactionRequest{
+		TxID:       txId,
+		Visible:    true,
+		RawData:    RawData,
+		RawDataHex: RawDataHex,
+		Signature:  []string{hexutil.Encode(signed)},
+	}
+
+	fmt.Println(RawData)
+	fmt.Println(RawDataHex)
+
+	res, err := trongridClient.BroadcastTransaction(t.Network, req)
+
+	fmt.Println(res)
+	fmt.Println(err)
+
+	return "", nil
 }

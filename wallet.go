@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/crypto"
-	"google.golang.org/protobuf/encoding/protojson"
 	"tronWallet/enums"
 	"tronWallet/trongridClient"
 	"tronWallet/util"
@@ -143,17 +142,12 @@ func (t *TronWallet) Transfer(toAddressBase58 string, amountInSun int64) (string
 
 	toAddress := util.Base58ToHex(toAddressBase58)
 
-	privateBytes, err := t.PrivateKeyBytes()
-	if err != nil {
-		return "", fmt.Errorf("hex decode private key error: %v", err)
-	}
-
 	privateRCDSA, err := t.PrivateKeyRCDSA()
 	if err != nil {
 		return "", fmt.Errorf("RCDSA private key error: %v", err)
 	}
 
-	pb, err := createTransactionInput(t.Network, t.Address, privateBytes, toAddress, amountInSun, enums.TrxTransferFeeLimit)
+	pb, err := trongridClient.CreateTransaction(t.Network, t.Address, toAddress, amountInSun)
 	if err != nil {
 		return "", fmt.Errorf("creating tx pb error: %v", err)
 	}
@@ -164,37 +158,17 @@ func (t *TronWallet) Transfer(toAddressBase58 string, amountInSun int64) (string
 	}
 
 	data := make(map[string]interface{})
-
+	data["raw_data"] = pb.RawData
 	data["txID"] = txId
-
 	data["signature"] = []string{
 		hexutil.Encode(signed),
 	}
+	data["visible"] = true
 
-	data["raw_data"] = protojson.Format(pb)
-	data["raw_data_hex"] = protojson.Format(pb)
+	res, err := trongridClient.BroadcastTransaction(t.Network, data)
+	if err != nil {
+		return "", fmt.Errorf("broadcast transaction error: %v", err)
+	}
 
-	//res, err := trongridClient.BroadcastTransaction(t.Network, data)
-	//if err != nil {
-	//	return "", fmt.Errorf("broadcast transaction error: %v", err)
-	//}
-
-	return "", err
-	//req := trongridClient.BroadcastTransactionRequest{
-	//	TxID:       txId,
-	//	Visible:    true,
-	//	RawData:    RawData,
-	//	RawDataHex: RawDataHex,
-	//	Signature:  []string{hexutil.Encode(signed)},
-	//}
-	//
-	//fmt.Println(RawData)
-	//fmt.Println(RawDataHex)
-	//
-	//res, err := trongridClient.BroadcastTransaction(t.Network, req)
-	//
-	//fmt.Println(res)
-	//fmt.Println(err)
-	//
-	//return "", nil
+	return res.TxID, err
 }

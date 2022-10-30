@@ -84,17 +84,13 @@ type BroadcastTransactionRequest struct {
 	Transaction string `json:"transaction"`
 }
 
-func BroadcastTransaction(network enums.Network, hex string) (Transaction, error) {
+func BroadcastTransaction(network enums.Network, requestBody map[string]interface{}) (Transaction, error) {
 
 	url := string(network) + "/wallet/broadcasttransaction"
 
 	header := map[string]string{
 		"Content-Type": "application/json",
 		"Accept":       "application/json",
-	}
-
-	requestBody := BroadcastTransactionRequest{
-		Transaction: hex,
 	}
 
 	responseBody := Transaction{}
@@ -112,11 +108,11 @@ func BroadcastTransaction(network enums.Network, hex string) (Transaction, error
 	}
 
 	err = json.Unmarshal(httpResponse, &responseBody)
-
 	if err != nil {
 		return responseBody, err
 	}
 
+	fmt.Println("HTTP res")
 	fmt.Println(string(httpResponse))
 
 	return responseBody, nil

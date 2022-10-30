@@ -3,7 +3,7 @@ package tronWallet
 import (
 	"crypto/ecdsa"
 	"crypto/sha256"
-	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/golang/protobuf/proto"
@@ -50,9 +50,9 @@ func createTransactionInput(network enums.Network, fromAddressHex string, fromPr
 
 }
 
-func signTransaction(pb proto.Message, privateKey *ecdsa.PrivateKey) ([]byte, string, error) {
+func signTransaction(pb trongridClient.CreateTransactionResponse, privateKey *ecdsa.PrivateKey) ([]byte, string, error) {
 
-	rawData, err := proto.Marshal(pb)
+	rawData, err := json.Marshal(pb.RawData)
 	if err != nil {
 		return nil, "", fmt.Errorf("proto marshal tx raw data error: %v", err)
 	}
@@ -65,7 +65,7 @@ func signTransaction(pb proto.Message, privateKey *ecdsa.PrivateKey) ([]byte, st
 		return nil, "", fmt.Errorf("sign error: %v", err)
 	}
 
-	return signature, hex.EncodeToString(hash), nil
+	return signature, pb.TxID, nil
 }
 
 func getRawTransaction(signed []byte) (string, error) {

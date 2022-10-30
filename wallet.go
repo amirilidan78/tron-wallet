@@ -2,7 +2,6 @@ package tronWallet
 
 import (
 	"crypto/ecdsa"
-	"encoding/hex"
 	"errors"
 	"fmt"
 	"github.com/ethereum/go-ethereum/common/hexutil"
@@ -164,24 +163,38 @@ func (t *TronWallet) Transfer(toAddressBase58 string, amountInSun int64) (string
 		return "", fmt.Errorf("signing transaction error: %v", err)
 	}
 
-	RawData := protojson.Format(pb)
-	RawDataHex := hex.EncodeToString([]byte(RawData))
+	data := make(map[string]interface{})
 
-	req := trongridClient.BroadcastTransactionRequest{
-		TxID:       txId,
-		Visible:    true,
-		RawData:    RawData,
-		RawDataHex: RawDataHex,
-		Signature:  []string{hexutil.Encode(signed)},
+	data["txID"] = txId
+
+	data["signature"] = []string{
+		hexutil.Encode(signed),
 	}
 
-	fmt.Println(RawData)
-	fmt.Println(RawDataHex)
+	data["raw_data"] = protojson.Format(pb)
+	data["raw_data_hex"] = protojson.Format(pb)
 
-	res, err := trongridClient.BroadcastTransaction(t.Network, req)
+	//res, err := trongridClient.BroadcastTransaction(t.Network, data)
+	//if err != nil {
+	//	return "", fmt.Errorf("broadcast transaction error: %v", err)
+	//}
 
-	fmt.Println(res)
-	fmt.Println(err)
-
-	return "", nil
+	return "", err
+	//req := trongridClient.BroadcastTransactionRequest{
+	//	TxID:       txId,
+	//	Visible:    true,
+	//	RawData:    RawData,
+	//	RawDataHex: RawDataHex,
+	//	Signature:  []string{hexutil.Encode(signed)},
+	//}
+	//
+	//fmt.Println(RawData)
+	//fmt.Println(RawDataHex)
+	//
+	//res, err := trongridClient.BroadcastTransaction(t.Network, req)
+	//
+	//fmt.Println(res)
+	//fmt.Println(err)
+	//
+	//return "", nil
 }

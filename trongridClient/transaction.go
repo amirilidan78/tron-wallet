@@ -81,20 +81,20 @@ type CreateTransactionResponse struct {
 }
 
 type BroadcastTransactionRequest struct {
-	TxID       string   `json:"txID"`
-	Visible    bool     `json:"visible"`
-	RawData    string   `json:"raw_data"`
-	RawDataHex string   `json:"raw_data_hex"`
-	Signature  []string `json:"signature"`
+	Transaction string `json:"transaction"`
 }
 
-func BroadcastTransaction(network enums.Network, requestBody BroadcastTransactionRequest) (Transaction, error) {
+func BroadcastTransaction(network enums.Network, hex string) (Transaction, error) {
 
 	url := string(network) + "/wallet/broadcasttransaction"
 
 	header := map[string]string{
 		"Content-Type": "application/json",
 		"Accept":       "application/json",
+	}
+
+	requestBody := BroadcastTransactionRequest{
+		Transaction: hex,
 	}
 
 	responseBody := Transaction{}
@@ -112,9 +112,12 @@ func BroadcastTransaction(network enums.Network, requestBody BroadcastTransactio
 	}
 
 	err = json.Unmarshal(httpResponse, &responseBody)
+
 	if err != nil {
 		return responseBody, err
 	}
+
+	fmt.Println(string(httpResponse))
 
 	return responseBody, nil
 }

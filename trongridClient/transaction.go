@@ -84,7 +84,7 @@ type BroadcastTransactionRequest struct {
 	Transaction string `json:"transaction"`
 }
 
-func BroadcastTransaction(network enums.Network, requestBody map[string]interface{}) (Transaction, error) {
+func BroadcastTransaction(network enums.Network, jsonBody string) (Transaction, error) {
 
 	url := string(network) + "/wallet/broadcasttransaction"
 
@@ -95,8 +95,15 @@ func BroadcastTransaction(network enums.Network, requestBody map[string]interfac
 
 	responseBody := Transaction{}
 
+	var requestBody map[string]interface{}
+	err := json.Unmarshal([]byte(jsonBody), &requestBody)
+	if err != nil {
+		return responseBody, err
+	}
+
 	httpResponse, _, statusCode, err := httpClient.NewHttpClient().HttpPost(url, requestBody, header)
 
+	fmt.Println("httpResponse")
 	fmt.Println(string(httpResponse))
 
 	if statusCode != http.StatusOK {
@@ -111,9 +118,6 @@ func BroadcastTransaction(network enums.Network, requestBody map[string]interfac
 	if err != nil {
 		return responseBody, err
 	}
-
-	fmt.Println("HTTP res")
-	fmt.Println(string(httpResponse))
 
 	return responseBody, nil
 }
@@ -187,43 +191,33 @@ func CreateTransaction(network enums.Network, fromAddressHex string, toAddressHe
 	return responseBody, nil
 }
 
-//func BroadcastTransaction(network enums.Network, fromAddressBase58 string, fromPrivateKey []byte, toAddressBase58 string, amountInSun int64, feeInSun int64) (map[string]interface{}, error) {
-//
-//	url := string(network) + "/wallet/broadcasttransaction"
-//
-//	input, err := createTransactionInput(network, fromAddressBase58, fromPrivateKey, toAddressBase58, amountInSun, feeInSun)
-//	if err != nil {
-//		return nil, err
-//	}
-//
-//	var requestBody map[string]interface{}
-//	err := json.Unmarshal(tx, &requestBody)
-//	if err != nil {
-//		return nil, err
-//	}
-//
-//	header := map[string]string{
-//		"Content-Type": "application/json",
-//		"Accept":       "application/json",
-//	}
-//
-//	var responseBody map[string]interface{}
-//
-//	httpResponse, _, statusCode, err := httpClient.NewHttpClient().HttpPost(url, requestBody, header)
-//
-//	if statusCode != http.StatusOK {
-//		return responseBody, errors.New(fmt.Sprintf("http status code is not 200 it is %d", statusCode))
-//	}
-//
-//	if err != nil {
-//		return responseBody, err
-//	}
-//
-//	err = json.Unmarshal(httpResponse, &responseBody)
-//	if err != nil {
-//		return responseBody, err
-//	}
-//
-//	return responseBody, nil
-//}
-//
+type TransactionBody struct {
+	RawData   TransactionBodyRawData `json:"raw_data"`
+	Signature []string               `json:"signature"`
+	TxID      string                 `json:"txID"`
+}
+
+type TransactionBodyRawData struct {
+	Contract      []TransactionBodyContract `json:"contract"`
+	Expiration    int64                     `json:"expiration"`
+	FeeLimit      int                       `json:"fee_limit"`
+	RefBlockBytes string                    `json:"ref_block_bytes"`
+	RefBlockHash  string                    `json:"ref_block_hash"`
+	Timestamp     int64                     `json:"timestamp"`
+}
+
+type TransactionBodyContract struct {
+	Parameter TransactionBodyContractParameter `json:"parameter"`
+	Type      string                           `json:"type"`
+}
+
+type TransactionBodyContractParameter struct {
+	TypeUrl string                                `json:"type_url"`
+	Value   TransactionBodyContractParameterValue `json:"value"`
+}
+
+type TransactionBodyContractParameterValue struct {
+	Amount       int    `json:"amount"`
+	OwnerAddress string `json:"owner_address"`
+	ToAddress    string `json:"to_address"`
+}

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"tronWallet"
 	"tronWallet/enums"
 )
@@ -15,6 +16,9 @@ func main() {
 
 	w := tronWallet.CreateTronWallet(network, privateKey)
 
-	_, _ = w.Transfer(toAddressBase58, amount)
+	txId, err := w.Transfer(toAddressBase58, amount)
+
+	fmt.Println(txId)
+	fmt.Println(err)
 
 }

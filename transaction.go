@@ -3,58 +3,58 @@ package tronWallet
 import (
 	"crypto/ecdsa"
 	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/golang/protobuf/proto"
-	"time"
 	"tronWallet/enums"
 	"tronWallet/trongridClient"
 	protoTron "tronWallet/trongridClient/proto"
 	"tronWallet/util"
 )
 
-func createTransactionInput(network enums.Network, fromAddressHex string, fromPrivateKey []byte, toAddressHex string, amountInSun int64, feeInSun int64) (*protoTron.TronSigningInput, error) {
+func createTransactionInput(network enums.Network, fromAddressHex string, toAddressHex string, amountInSun int64) (trongridClient.CreateTransactionResponse, error) {
 
-	blockHeader, err := makeTransactionBlockHeader(network)
-	if err != nil {
-		return nil, err
-	}
+	return trongridClient.CreateTransaction(network, fromAddressHex, toAddressHex, amountInSun)
 
-	now := time.Now()
-	timestamp := now.Unix() * 1000
-	expirationTimeStamp := blockHeader.Timestamp + 60*60*1000
-
-	transferContract := &protoTron.TronTransferContract{
-		OwnerAddress: fromAddressHex,
-		ToAddress:    toAddressHex,
-		Amount:       amountInSun,
-	}
-
-	txContract := &protoTron.TronTransaction_Transfer{
-		Transfer: transferContract,
-	}
-
-	tx := &protoTron.TronTransaction{
-		Timestamp:     timestamp,
-		Expiration:    expirationTimeStamp,
-		BlockHeader:   blockHeader,
-		FeeLimit:      feeInSun,
-		ContractOneof: txContract,
-	}
-
-	return &protoTron.TronSigningInput{
-		Transaction: tx,
-		PrivateKey:  fromPrivateKey,
-	}, nil
-
+	//blockHeader, err := makeTransactionBlockHeader(network)
+	//if err != nil {
+	//	return nil, err
+	//}
+	//
+	//now := time.Now()
+	//timestamp := now.Unix() * 1000
+	//expirationTimeStamp := blockHeader.Timestamp + 60*60*1000
+	//
+	//transferContract := &protoTron.TronTransferContract{
+	//	OwnerAddress: fromAddressHex,
+	//	ToAddress:    toAddressHex,
+	//	Amount:       amountInSun,
+	//}
+	//
+	//txContract := &protoTron.TronTransaction_Transfer{
+	//	Transfer: transferContract,
+	//}
+	//
+	//tx := &protoTron.TronTransaction{
+	//	Timestamp:     timestamp,
+	//	Expiration:    expirationTimeStamp,
+	//	BlockHeader:   blockHeader,
+	//	FeeLimit:      feeInSun,
+	//	ContractOneof: txContract,
+	//}
+	//
+	//return &protoTron.TronSigningInput{
+	//	Transaction: tx,
+	//	PrivateKey:  fromPrivateKey,
+	//}, nil
 }
 
-func signTransaction(pb trongridClient.CreateTransactionResponse, privateKey *ecdsa.PrivateKey) ([]byte, string, error) {
+func signTransaction(pb trongridClient.CreateTransactionResponse, privateKey *ecdsa.PrivateKey) ([]byte, error) {
 
 	rawData, err := json.Marshal(pb.RawData)
 	if err != nil {
-		return nil, "", fmt.Errorf("proto marshal tx raw data error: %v", err)
+		return nil, fmt.Errorf("proto marshal tx raw data error: %v", err)
 	}
 
 	h256h := sha256.New()
@@ -62,22 +62,45 @@ func signTransaction(pb trongridClient.CreateTransactionResponse, privateKey *ec
 	hash := h256h.Sum(nil)
 	signature, err := crypto.Sign(hash, privateKey)
 	if err != nil {
-		return nil, "", fmt.Errorf("sign error: %v", err)
+		return nil, fmt.Errorf("sign error: %v", err)
 	}
 
-	return signature, pb.TxID, nil
+	return signature, nil
 }
 
-func getRawTransaction(signed []byte) (string, error) {
+func getRawTransaction(input trongridClient.CreateTransactionResponse, signed []byte) (string, error) {
 
-	so := &protoTron.TronSigningOutput{}
+	so := trongridClient.TransactionBody{
+		RawData: trongridClient.TransactionBodyRawData{
+			Contract: []trongridClient.TransactionBodyContract{
+				{
+					Parameter: trongridClient.TransactionBodyContractParameter{
+						TypeUrl: "type.googleapis.com/protocol.TransferContract",
+						Value: trongridClient.TransactionBodyContractParameterValue{
+							Amount:       input.RawData.Contract[0].Parameter.Value.Amount,
+							OwnerAddress: input.RawData.Contract[0].Parameter.Value.OwnerAddress,
+							ToAddress:    input.RawData.Contract[0].Parameter.Value.ToAddress,
+						},
+					},
+					Type: "TransferContract",
+				},
+			},
+			Expiration:    input.RawData.Expiration,
+			FeeLimit:      enums.TrxTransferFeeLimit,
+			RefBlockBytes: input.RawData.RefBlockBytes,
+			RefBlockHash:  input.RawData.RefBlockHash,
+			Timestamp:     input.RawData.Timestamp,
+		},
+		Signature: []string{hex.EncodeToString(signed)},
+		TxID:      input.TxID,
+	}
 
-	err := proto.Unmarshal(signed, so)
+	jsonStr, err := json.Marshal(so)
 	if err != nil {
 		return "", err
 	}
 
-	return so.GetJson(), nil
+	return string(jsonStr), nil
 }
 
 func makeTransactionBlockHeader(network enums.Network) (*protoTron.TronBlockHeader, error) {

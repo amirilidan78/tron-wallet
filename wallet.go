@@ -147,28 +147,43 @@ func (t *TronWallet) Transfer(toAddressBase58 string, amountInSun int64) (string
 		return "", fmt.Errorf("RCDSA private key error: %v", err)
 	}
 
-	pb, err := trongridClient.CreateTransaction(t.Network, t.Address, toAddress, amountInSun)
+	input, err := createTransactionInput(t.Network, t.Address, toAddress, amountInSun)
 	if err != nil {
 		return "", fmt.Errorf("creating tx pb error: %v", err)
 	}
 
-	signed, txId, err := signTransaction(pb, privateRCDSA)
+	signed, err := signTransaction(input, privateRCDSA)
 	if err != nil {
 		return "", fmt.Errorf("signing transaction error: %v", err)
 	}
 
-	data := make(map[string]interface{})
-	data["raw_data"] = pb.RawData
-	data["txID"] = txId
-	data["signature"] = []string{
-		hexutil.Encode(signed),
+	raw, err := getRawTransaction(input, signed)
+	if err != nil {
+		return "", fmt.Errorf("raw transaction error: %v", err)
 	}
-	data["visible"] = true
 
-	res, err := trongridClient.BroadcastTransaction(t.Network, data)
+	res, err := trongridClient.BroadcastTransaction(t.Network, raw)
 	if err != nil {
 		return "", fmt.Errorf("broadcast transaction error: %v", err)
 	}
 
-	return res.TxID, err
+	fmt.Println("res")
+	fmt.Println(res)
+
+	return "", nil
+
+	//data := make(map[string]interface{})
+	//data["raw_data"] = pb.RawData
+	//data["txID"] = txId
+	//data["signature"] = []string{
+	//	hexutil.Encode(signed),
+	//}
+	//data["visible"] = true
+	//
+	//res, err := trongridClient.BroadcastTransaction(t.Network, data)
+	//if err != nil {
+	//	return "", fmt.Errorf("broadcast transaction error: %v", err)
+	//}
+	//
+	//return res.TxID, err
 }

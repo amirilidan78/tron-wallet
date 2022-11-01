@@ -85,7 +85,8 @@ type BroadcastTransactionRequest struct {
 }
 
 func BroadcastTransaction(network enums.Network, jsonBody string) (Transaction, error) {
-
+	fmt.Println("jsonBody")
+	fmt.Println(jsonBody)
 	url := string(network) + "/wallet/broadcasttransaction"
 
 	header := map[string]string{
@@ -192,9 +193,10 @@ func CreateTransaction(network enums.Network, fromAddressHex string, toAddressHe
 }
 
 type TransactionBody struct {
-	RawData   TransactionBodyRawData `json:"raw_data"`
-	Signature []string               `json:"signature"`
-	TxID      string                 `json:"txID"`
+	RawData    TransactionBodyRawData `json:"raw_data"`
+	RawDataHex string                 `json:"raw_data_hex"`
+	Signature  [][]byte               `json:"signature"`
+	TxID       string                 `json:"txID"`
 }
 
 type TransactionBodyRawData struct {

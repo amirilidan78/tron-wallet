@@ -3,32 +3,30 @@ package tronWallet
 import (
 	"crypto/ecdsa"
 	"crypto/sha256"
-	"encoding/json"
+	"errors"
 	"fmt"
-	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/fbsobreira/gotron-sdk/pkg/client"
 	"github.com/fbsobreira/gotron-sdk/pkg/proto/api"
+	"github.com/golang/protobuf/proto"
 	"tronWallet/enums"
-	"tronWallet/trongridClient"
-	protoTron "tronWallet/trongridClient/proto"
-	"tronWallet/util"
+	"tronWallet/grpcClient"
 )
 
-func createTransactionInput(network enums.Network, fromAddressHex string, toAddressHex string, amountInSun int64) (*api.TransactionExtention, error) {
+func createTransactionInput(node enums.Node, fromAddressBase58 string, toAddressBase58 string, amountInSun int64) (*api.TransactionExtention, error) {
 
-	c := client.NewGrpcClient(string(enums.SHASTA_NODE))
+	c, err := grpcClient.GetGrpcClient(node)
+	if err != nil {
+		return nil, err
+	}
 
-	c.Start()
-
-	return c.Transfer(fromAddressHex, toAddressHex, amountInSun)
+	return c.Transfer(fromAddressBase58, toAddressBase58, amountInSun)
 }
 
-func signTransaction(pb trongridClient.CreateTransactionResponse, privateKey *ecdsa.PrivateKey) (string, error) {
+func signTransaction(transaction *api.TransactionExtention, privateKey *ecdsa.PrivateKey) (*api.TransactionExtention, error) {
 
-	rawData, err := json.Marshal(pb.RawData)
+	rawData, err := proto.Marshal(transaction.Transaction.GetRawData())
 	if err != nil {
-		return "", fmt.Errorf("proto marshal tx raw data error: %v", err)
+		return transaction, fmt.Errorf("proto marshal tx raw data error: %v", err)
 	}
 
 	h256h := sha256.New()
@@ -36,89 +34,28 @@ func signTransaction(pb trongridClient.CreateTransactionResponse, privateKey *ec
 	hash := h256h.Sum(nil)
 	signature, err := crypto.Sign(hash, privateKey)
 	if err != nil {
-		return "", fmt.Errorf("sign error: %v", err)
+		return transaction, fmt.Errorf("sign error: %v", err)
 	}
 
-	signatureString := hexutil.Encode(signature)
-
-	return signatureString[2:], nil
+	transaction.Transaction.Signature = append(transaction.Transaction.Signature, signature)
+	return transaction, nil
 }
 
-func getRawTransaction(input trongridClient.CreateTransactionResponse, signed []byte) (string, error) {
+func broadcastTransaction(node enums.Node, transaction *api.TransactionExtention) error {
 
-	data, err := json.Marshal(input)
+	c, err := grpcClient.GetGrpcClient(node)
 	if err != nil {
-		return "", err
-	}
-	so := trongridClient.TransactionBody{
-		RawData: trongridClient.TransactionBodyRawData{
-			Contract: []trongridClient.TransactionBodyContract{
-				{
-					Parameter: trongridClient.TransactionBodyContractParameter{
-						TypeUrl: "type.googleapis.com/protocol.TransferContract",
-						Value: trongridClient.TransactionBodyContractParameterValue{
-							Amount:       input.RawData.Contract[0].Parameter.Value.Amount,
-							OwnerAddress: input.RawData.Contract[0].Parameter.Value.OwnerAddress,
-							ToAddress:    input.RawData.Contract[0].Parameter.Value.ToAddress,
-						},
-					},
-					Type: "TransferContract",
-				},
-			},
-			Expiration:    input.RawData.Expiration,
-			FeeLimit:      enums.TrxTransferFeeLimit,
-			RefBlockBytes: input.RawData.RefBlockBytes,
-			RefBlockHash:  input.RawData.RefBlockHash,
-			Timestamp:     input.RawData.Timestamp,
-		},
-		Signature:  [][]byte{signed},
-		TxID:       input.TxID,
-		RawDataHex: hexutil.Encode(data)[2:],
+		return err
 	}
 
-	jsonStr, err := json.Marshal(so)
+	res, err := c.Broadcast(transaction.Transaction)
 	if err != nil {
-		return "", err
+		return err
 	}
 
-	return string(jsonStr), nil
-}
-
-func makeTransactionBlockHeader(network enums.Network) (*protoTron.TronBlockHeader, error) {
-
-	nowBlockResponseBody, err := trongridClient.CurrentBlock(network)
-	if err != nil {
-		return nil, err
+	if res.Result != true {
+		return errors.New(res.Code.String())
 	}
 
-	blockHeaderRaw := nowBlockResponseBody.BlockHeader.RawData
-
-	txTrieRootHex, errTxTrieRootHex := util.StringToHex(blockHeaderRaw.TxTrieRoot)
-
-	if errTxTrieRootHex != nil {
-		return nil, errTxTrieRootHex
-	}
-
-	parentHash, errParentHash := util.StringToHex(blockHeaderRaw.ParentHash)
-
-	if errParentHash != nil {
-		return nil, errParentHash
-	}
-
-	witnessAddress, errWitnessAddress := util.StringToHex(blockHeaderRaw.WitnessAddress)
-
-	if errWitnessAddress != nil {
-		return nil, errWitnessAddress
-	}
-
-	blockHeader := &protoTron.TronBlockHeader{
-		Timestamp:      blockHeaderRaw.Timestamp,
-		TxTrieRoot:     txTrieRootHex,
-		ParentHash:     parentHash,
-		Number:         blockHeaderRaw.Number,
-		WitnessAddress: witnessAddress,
-		Version:        blockHeaderRaw.Version,
-	}
-
-	return blockHeader, nil
+	return nil
 }

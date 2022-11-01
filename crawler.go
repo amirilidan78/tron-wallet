@@ -2,16 +2,20 @@ package tronWallet
 
 import (
 	"fmt"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/fbsobreira/gotron-sdk/pkg/address"
+	"github.com/fbsobreira/gotron-sdk/pkg/client"
+	"github.com/fbsobreira/gotron-sdk/pkg/proto/api"
+	"github.com/fbsobreira/gotron-sdk/pkg/proto/core"
 	"strings"
 	"sync"
 	"time"
 	"tronWallet/enums"
-	"tronWallet/trongridClient"
+	"tronWallet/grpcClient"
 )
 
 type Crawler struct {
-	Network   enums.Network
+	Node      enums.Node
 	Addresses []string
 }
 
@@ -33,10 +37,17 @@ func (c *Crawler) ScanBlocks(count int) ([]CrawlResult, error) {
 
 	var allTransactions [][]CrawlTransaction
 
-	block, err := trongridClient.CurrentBlock(c.Network)
+	client, err := grpcClient.GetGrpcClient(c.Node)
 	if err != nil {
 		return nil, err
 	}
+
+	block, err := client.GetNowBlock()
+	if err != nil {
+		return nil, err
+	}
+
+	fmt.Println(block.BlockHeader.RawData.Number)
 
 	// check block for transaction
 	allTransactions = append(allTransactions, c.extractOurTransactionsFromBlock(block))
@@ -44,7 +55,7 @@ func (c *Crawler) ScanBlocks(count int) ([]CrawlResult, error) {
 		return nil, err
 	}
 
-	blockNumber := int32(block.BlockHeader.RawData.Number)
+	blockNumber := block.BlockHeader.RawData.Number
 
 	for i := count; i > 0; i-- {
 
@@ -54,7 +65,7 @@ func (c *Crawler) ScanBlocks(count int) ([]CrawlResult, error) {
 
 		// sleep to avoid 503 error
 		time.Sleep(100 * time.Millisecond)
-		go c.getBlockData(&wg, &allTransactions, blockNumber)
+		go c.getBlockData(&wg, client, &allTransactions, blockNumber)
 	}
 
 	wg.Wait()
@@ -62,11 +73,11 @@ func (c *Crawler) ScanBlocks(count int) ([]CrawlResult, error) {
 	return c.prepareCrawlResultFromTransactions(allTransactions), nil
 }
 
-func (c *Crawler) getBlockData(wg *sync.WaitGroup, allTransactions *[][]CrawlTransaction, num int32) {
+func (c *Crawler) getBlockData(wg *sync.WaitGroup, client *client.GrpcClient, allTransactions *[][]CrawlTransaction, num int64) {
 
 	defer wg.Done()
 
-	block, err := trongridClient.GetBlockByNumber(c.Network, num)
+	block, err := client.GetBlockByNum(num)
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -76,30 +87,39 @@ func (c *Crawler) getBlockData(wg *sync.WaitGroup, allTransactions *[][]CrawlTra
 	*allTransactions = append(*allTransactions, c.extractOurTransactionsFromBlock(block))
 }
 
-func (c *Crawler) extractOurTransactionsFromBlock(block trongridClient.BlockResponseBody) []CrawlTransaction {
+func (c *Crawler) extractOurTransactionsFromBlock(block *api.BlockExtention) []CrawlTransaction {
 
 	var txs []CrawlTransaction
 
-	for _, transaction := range block.Transactions {
+	fmt.Println(txs)
+
+	for _, t := range block.Transactions {
+
+		transaction := t.Transaction
 
 		// if transaction is not success
-		if transaction.Ret[0].ContractRet != enums.SuccessTransactionRetStatus {
+		if transaction.Ret[0].ContractRet != core.Transaction_Result_SUCCESS {
 			continue
 		}
 
 		// if transaction is not tron transfer
-		if transaction.RawData.Contract[0].Type != enums.TransferContract {
+		if transaction.RawData.Contract[0].Type != core.Transaction_Contract_TransferContract {
 			continue
 		}
 
+		amount := 0
+		//amount := transaction.RawData.Contract[0].Parameter.Value.Amount
+
 		// if address is hex convert to base58
-		toAddress := transaction.RawData.Contract[0].Parameter.Value.ToAddress
+		toAddress := ""
+		//toAddress := transaction.RawData.Contract[0].Parameter.Value
 		if strings.HasPrefix(toAddress, "41") == true {
 			toAddress = address.HexToAddress(toAddress).String()
 		}
 
 		// if address is hex convert to base58
-		fromAddress := transaction.RawData.Contract[0].Parameter.Value.OwnerAddress
+		fromAddress := ""
+		//fromAddress := transaction.RawData.Contract[0].Parameter.Value.OwnerAddress
 		if strings.HasPrefix(fromAddress, "41") == true {
 			fromAddress = address.HexToAddress(fromAddress).String()
 		}
@@ -107,10 +127,10 @@ func (c *Crawler) extractOurTransactionsFromBlock(block trongridClient.BlockResp
 		for _, ourAddress := range c.Addresses {
 			if ourAddress == toAddress {
 				txs = append(txs, CrawlTransaction{
-					TxId:        transaction.TxID,
+					TxId:        hexutil.Encode(t.GetTxid())[2:],
 					FromAddress: fromAddress,
 					ToAddress:   toAddress,
-					Amount:      transaction.RawData.Contract[0].Parameter.Value.Amount,
+					Amount:      uint64(amount),
 				})
 			}
 		}

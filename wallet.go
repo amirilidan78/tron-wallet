@@ -7,12 +7,12 @@ import (
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/crypto"
 	"tronWallet/enums"
-	"tronWallet/trongridClient"
+	"tronWallet/grpcClient"
 	"tronWallet/util"
 )
 
 type TronWallet struct {
-	Network       enums.Network
+	Node          enums.Node
 	Address       string
 	AddressBase58 string
 	PrivateKey    string
@@ -21,7 +21,7 @@ type TronWallet struct {
 
 // generating
 
-func GenerateTronWallet(network enums.Network) *TronWallet {
+func GenerateTronWallet(node enums.Node) *TronWallet {
 
 	privateKey, _ := generatePrivateKey()
 	privateKeyHex := convertPrivateKeyToHex(privateKey)
@@ -33,7 +33,7 @@ func GenerateTronWallet(network enums.Network) *TronWallet {
 	addressBase58 := util.HexToBase58(address)
 
 	return &TronWallet{
-		Network:       network,
+		Node:          node,
 		Address:       address,
 		AddressBase58: addressBase58,
 		PrivateKey:    privateKeyHex,
@@ -41,7 +41,7 @@ func GenerateTronWallet(network enums.Network) *TronWallet {
 	}
 }
 
-func CreateTronWallet(network enums.Network, privateKeyHex string) *TronWallet {
+func CreateTronWallet(node enums.Node, privateKeyHex string) *TronWallet {
 
 	privateKey, err := privateKeyFromHex(privateKeyHex)
 	if err != nil {
@@ -55,7 +55,7 @@ func CreateTronWallet(network enums.Network, privateKeyHex string) *TronWallet {
 	addressBase58 := util.HexToBase58(address)
 
 	return &TronWallet{
-		Network:       network,
+		Node:          node,
 		Address:       address,
 		AddressBase58: addressBase58,
 		PrivateKey:    privateKeyHex,
@@ -132,77 +132,44 @@ func getAddressFromPublicKey(publicKey *ecdsa.PublicKey) string {
 
 // balance
 
-func (t *TronWallet) Balance() (trongridClient.GetAccountResponseBody, error) {
-	return trongridClient.GetAddressBalance(t.Network, t.AddressBase58)
+func (t *TronWallet) Balance() (int64, error) {
+
+	c, err := grpcClient.GetGrpcClient(t.Node)
+	if err != nil {
+		return 0, err
+	}
+
+	b, err := c.GetAccount(t.AddressBase58)
+	if err != nil {
+		return 0, err
+	}
+
+	return b.Balance, nil
 }
 
 // transaction
 
 func (t *TronWallet) Transfer(toAddressBase58 string, amountInSun int64) (string, error) {
 
-	toAddress := util.Base58ToHex(toAddressBase58)
-
 	privateRCDSA, err := t.PrivateKeyRCDSA()
 	if err != nil {
 		return "", fmt.Errorf("RCDSA private key error: %v", err)
 	}
 
-	input, err := createTransactionInput(t.Network, t.Address, toAddress, amountInSun)
+	tx, err := createTransactionInput(t.Node, t.AddressBase58, toAddressBase58, amountInSun)
 	if err != nil {
 		return "", fmt.Errorf("creating tx pb error: %v", err)
 	}
 
-	fmt.Println("Address")
-	fmt.Println(input.RawData.Contract[0].Parameter.Value.OwnerAddress)
-	fmt.Println(input.RawData.Contract[0].Parameter.Value.ToAddress)
-	fmt.Println(input.RawData.Contract[0].Parameter.Value.Amount)
-
-	fmt.Println("TxID")
-	fmt.Println(input.TxID)
-
-	fmt.Println("Timestamp")
-	fmt.Println(input.RawData.Timestamp)
-
-	fmt.Println("Expiration")
-	fmt.Println(input.RawData.Expiration)
-
-	fmt.Println("RefBlockHash")
-	fmt.Println(input.RawData.RefBlockHash)
-
-	fmt.Println("RefBlockBytes")
-	fmt.Println(input.RawData.RefBlockBytes)
-
-	signed, err := signTransaction(input, privateRCDSA)
+	tx, err = signTransaction(tx, privateRCDSA)
 	if err != nil {
 		return "", fmt.Errorf("signing transaction error: %v", err)
 	}
 
-	raw, err := getRawTransaction(input, []byte(signed))
-	if err != nil {
-		return "", fmt.Errorf("raw transaction error: %v", err)
-	}
-
-	res, err := trongridClient.BroadcastTransaction(t.Network, raw)
+	err = broadcastTransaction(t.Node, tx)
 	if err != nil {
 		return "", fmt.Errorf("broadcast transaction error: %v", err)
 	}
 
-	fmt.Println(res)
-
-	return "", nil
-
-	//data := make(map[string]interface{})
-	//data["raw_data"] = pb.RawData
-	//data["txID"] = txId
-	//data["signature"] = []string{
-	//	hexutil.Encode(signed),
-	//}
-	//data["visible"] = true
-	//
-	//res, err := trongridClient.BroadcastTransaction(t.Network, data)
-	//if err != nil {
-	//	return "", fmt.Errorf("broadcast transaction error: %v", err)
-	//}
-	//
-	//return res.TxID, err
+	return hexutil.Encode(tx.GetTxid())[2:], nil
 }

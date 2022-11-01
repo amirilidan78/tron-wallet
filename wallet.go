@@ -152,12 +152,32 @@ func (t *TronWallet) Transfer(toAddressBase58 string, amountInSun int64) (string
 		return "", fmt.Errorf("creating tx pb error: %v", err)
 	}
 
+	fmt.Println("Address")
+	fmt.Println(input.RawData.Contract[0].Parameter.Value.OwnerAddress)
+	fmt.Println(input.RawData.Contract[0].Parameter.Value.ToAddress)
+	fmt.Println(input.RawData.Contract[0].Parameter.Value.Amount)
+
+	fmt.Println("TxID")
+	fmt.Println(input.TxID)
+
+	fmt.Println("Timestamp")
+	fmt.Println(input.RawData.Timestamp)
+
+	fmt.Println("Expiration")
+	fmt.Println(input.RawData.Expiration)
+
+	fmt.Println("RefBlockHash")
+	fmt.Println(input.RawData.RefBlockHash)
+
+	fmt.Println("RefBlockBytes")
+	fmt.Println(input.RawData.RefBlockBytes)
+
 	signed, err := signTransaction(input, privateRCDSA)
 	if err != nil {
 		return "", fmt.Errorf("signing transaction error: %v", err)
 	}
 
-	raw, err := getRawTransaction(input, signed)
+	raw, err := getRawTransaction(input, []byte(signed))
 	if err != nil {
 		return "", fmt.Errorf("raw transaction error: %v", err)
 	}
@@ -167,7 +187,6 @@ func (t *TronWallet) Transfer(toAddressBase58 string, amountInSun int64) (string
 		return "", fmt.Errorf("broadcast transaction error: %v", err)
 	}
 
-	fmt.Println("res")
 	fmt.Println(res)
 
 	return "", nil

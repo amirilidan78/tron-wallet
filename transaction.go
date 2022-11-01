@@ -3,9 +3,9 @@ package tronWallet
 import (
 	"crypto/ecdsa"
 	"crypto/sha256"
-	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/fbsobreira/gotron-sdk/pkg/client"
 	"github.com/fbsobreira/gotron-sdk/pkg/proto/api"
@@ -24,11 +24,11 @@ func createTransactionInput(network enums.Network, fromAddressHex string, toAddr
 	return c.Transfer(fromAddressHex, toAddressHex, amountInSun)
 }
 
-func signTransaction(pb trongridClient.CreateTransactionResponse, privateKey *ecdsa.PrivateKey) ([]byte, error) {
+func signTransaction(pb trongridClient.CreateTransactionResponse, privateKey *ecdsa.PrivateKey) (string, error) {
 
 	rawData, err := json.Marshal(pb.RawData)
 	if err != nil {
-		return nil, fmt.Errorf("proto marshal tx raw data error: %v", err)
+		return "", fmt.Errorf("proto marshal tx raw data error: %v", err)
 	}
 
 	h256h := sha256.New()
@@ -36,14 +36,20 @@ func signTransaction(pb trongridClient.CreateTransactionResponse, privateKey *ec
 	hash := h256h.Sum(nil)
 	signature, err := crypto.Sign(hash, privateKey)
 	if err != nil {
-		return nil, fmt.Errorf("sign error: %v", err)
+		return "", fmt.Errorf("sign error: %v", err)
 	}
 
-	return signature, nil
+	signatureString := hexutil.Encode(signature)
+
+	return signatureString[2:], nil
 }
 
 func getRawTransaction(input trongridClient.CreateTransactionResponse, signed []byte) (string, error) {
 
+	data, err := json.Marshal(input)
+	if err != nil {
+		return "", err
+	}
 	so := trongridClient.TransactionBody{
 		RawData: trongridClient.TransactionBodyRawData{
 			Contract: []trongridClient.TransactionBodyContract{
@@ -65,8 +71,9 @@ func getRawTransaction(input trongridClient.CreateTransactionResponse, signed []
 			RefBlockHash:  input.RawData.RefBlockHash,
 			Timestamp:     input.RawData.Timestamp,
 		},
-		Signature: []string{hex.EncodeToString(signed)},
-		TxID:      input.TxID,
+		Signature:  [][]byte{signed},
+		TxID:       input.TxID,
+		RawDataHex: hexutil.Encode(data)[2:],
 	}
 
 	jsonStr, err := json.Marshal(so)

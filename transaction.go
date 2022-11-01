@@ -7,47 +7,21 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/fbsobreira/gotron-sdk/pkg/client"
+	"github.com/fbsobreira/gotron-sdk/pkg/proto/api"
 	"tronWallet/enums"
 	"tronWallet/trongridClient"
 	protoTron "tronWallet/trongridClient/proto"
 	"tronWallet/util"
 )
 
-func createTransactionInput(network enums.Network, fromAddressHex string, toAddressHex string, amountInSun int64) (trongridClient.CreateTransactionResponse, error) {
+func createTransactionInput(network enums.Network, fromAddressHex string, toAddressHex string, amountInSun int64) (*api.TransactionExtention, error) {
 
-	return trongridClient.CreateTransaction(network, fromAddressHex, toAddressHex, amountInSun)
+	c := client.NewGrpcClient(string(enums.SHASTA_NODE))
 
-	//blockHeader, err := makeTransactionBlockHeader(network)
-	//if err != nil {
-	//	return nil, err
-	//}
-	//
-	//now := time.Now()
-	//timestamp := now.Unix() * 1000
-	//expirationTimeStamp := blockHeader.Timestamp + 60*60*1000
-	//
-	//transferContract := &protoTron.TronTransferContract{
-	//	OwnerAddress: fromAddressHex,
-	//	ToAddress:    toAddressHex,
-	//	Amount:       amountInSun,
-	//}
-	//
-	//txContract := &protoTron.TronTransaction_Transfer{
-	//	Transfer: transferContract,
-	//}
-	//
-	//tx := &protoTron.TronTransaction{
-	//	Timestamp:     timestamp,
-	//	Expiration:    expirationTimeStamp,
-	//	BlockHeader:   blockHeader,
-	//	FeeLimit:      feeInSun,
-	//	ContractOneof: txContract,
-	//}
-	//
-	//return &protoTron.TronSigningInput{
-	//	Transaction: tx,
-	//	PrivateKey:  fromPrivateKey,
-	//}, nil
+	c.Start()
+
+	return c.Transfer(fromAddressHex, toAddressHex, amountInSun)
 }
 
 func signTransaction(pb trongridClient.CreateTransactionResponse, privateKey *ecdsa.PrivateKey) ([]byte, error) {

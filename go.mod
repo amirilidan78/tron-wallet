@@ -1,4 +1,4 @@
-module tronWallet
+module github.com/Amirilidan78/tron-wallet
 
 go 1.18
 

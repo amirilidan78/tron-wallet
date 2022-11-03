@@ -2,10 +2,10 @@ package grpcClient
 
 import (
 	"fmt"
+	"github.com/Amirilidan78/tron-wallet/grpcClient/proto/api"
+	"github.com/Amirilidan78/tron-wallet/grpcClient/proto/core"
+	"github.com/Amirilidan78/tron-wallet/util"
 	"google.golang.org/protobuf/proto"
-	"tronWallet/grpcClient/proto/api"
-	"tronWallet/grpcClient/proto/core"
-	"tronWallet/util"
 )
 
 func (g *GrpcClient) Transfer(from, toAddress string, amount int64) (*api.TransactionExtention, error) {

@@ -3,8 +3,8 @@ package grpcClient
 import (
 	"bytes"
 	"fmt"
-	"tronWallet/grpcClient/proto/core"
-	"tronWallet/util"
+	"github.com/Amirilidan78/tron-wallet/grpcClient/proto/core"
+	"github.com/Amirilidan78/tron-wallet/util"
 )
 
 func (g *GrpcClient) GetAccount(addr string) (*core.Account, error) {

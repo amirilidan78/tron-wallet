@@ -3,13 +3,16 @@ package tronWallet
 import (
 	"crypto/ecdsa"
 	"crypto/sha256"
-	"errors"
 	"fmt"
+	"github.com/Amirilidan78/tron-wallet/enums"
+	"github.com/Amirilidan78/tron-wallet/grpcClient"
+	"github.com/Amirilidan78/tron-wallet/grpcClient/proto/api"
 	"github.com/ethereum/go-ethereum/crypto"
+)
+
+import (
+	"errors"
 	"github.com/golang/protobuf/proto"
-	"tronWallet/enums"
-	"tronWallet/grpcClient"
-	"tronWallet/grpcClient/proto/api"
 )
 
 func createTransactionInput(node enums.Node, fromAddressBase58 string, toAddressBase58 string, amountInSun int64) (*api.TransactionExtention, error) {

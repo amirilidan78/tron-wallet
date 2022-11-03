@@ -4,11 +4,11 @@ import (
 	"crypto/ecdsa"
 	"errors"
 	"fmt"
+	"github.com/Amirilidan78/tron-wallet/enums"
+	"github.com/Amirilidan78/tron-wallet/grpcClient"
+	"github.com/Amirilidan78/tron-wallet/util"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/crypto"
-	"tronWallet/enums"
-	"tronWallet/grpcClient"
-	"tronWallet/util"
 )
 
 type TronWallet struct {

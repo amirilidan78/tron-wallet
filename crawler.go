@@ -2,16 +2,19 @@ package tronWallet
 
 import (
 	"fmt"
+	"github.com/Amirilidan78/tron-wallet/enums"
+	"github.com/Amirilidan78/tron-wallet/grpcClient"
+	"github.com/Amirilidan78/tron-wallet/grpcClient/proto/api"
+	"github.com/Amirilidan78/tron-wallet/grpcClient/proto/core"
+	"github.com/Amirilidan78/tron-wallet/util"
 	"github.com/ethereum/go-ethereum/common/hexutil"
-	"github.com/golang/protobuf/proto"
 	"strings"
 	"sync"
 	"time"
-	"tronWallet/enums"
-	"tronWallet/grpcClient"
-	"tronWallet/grpcClient/proto/api"
-	"tronWallet/grpcClient/proto/core"
-	"tronWallet/util"
+)
+
+import (
+	"github.com/golang/protobuf/proto"
 )
 
 type Crawler struct {

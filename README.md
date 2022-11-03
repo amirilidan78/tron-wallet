@@ -62,3 +62,8 @@ txId // string
 
 ### Supported networks
 check `enums/nodes` file
+
+```
+I simplified this repository https://github.com/fbsobreira repository to create this package
+You can check go tron sdk for better examples and functionalities
+```

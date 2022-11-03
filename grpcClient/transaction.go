@@ -2,20 +2,20 @@ package grpcClient
 
 import (
 	"fmt"
-	"github.com/fbsobreira/gotron-sdk/pkg/common"
 	"google.golang.org/protobuf/proto"
 	"tronWallet/grpcClient/proto/api"
 	"tronWallet/grpcClient/proto/core"
+	"tronWallet/util"
 )
 
 func (g *GrpcClient) Transfer(from, toAddress string, amount int64) (*api.TransactionExtention, error) {
 	var err error
 
 	contract := &core.TransferContract{}
-	if contract.OwnerAddress, err = common.DecodeCheck(from); err != nil {
+	if contract.OwnerAddress, err = util.DecodeCheck(from); err != nil {
 		return nil, err
 	}
-	if contract.ToAddress, err = common.DecodeCheck(toAddress); err != nil {
+	if contract.ToAddress, err = util.DecodeCheck(toAddress); err != nil {
 		return nil, err
 	}
 	contract.Amount = amount

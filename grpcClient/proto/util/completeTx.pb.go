@@ -7,8 +7,8 @@
 package util
 
 import (
-	api "github.com/fbsobreira/gotron-sdk/pkg/proto/api"
-	core "github.com/fbsobreira/gotron-sdk/pkg/proto/core"
+	api "tronWallet/grpcClient/proto/api"
+	core "tronWallet/grpcClient/proto/core"
 	proto "github.com/golang/protobuf/proto"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"

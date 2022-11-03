@@ -3,15 +3,15 @@ package grpcClient
 import (
 	"bytes"
 	"fmt"
-	"github.com/fbsobreira/gotron-sdk/pkg/common"
 	"tronWallet/grpcClient/proto/core"
+	"tronWallet/util"
 )
 
 func (g *GrpcClient) GetAccount(addr string) (*core.Account, error) {
 	account := new(core.Account)
 	var err error
 
-	account.Address, err = common.DecodeCheck(addr)
+	account.Address, err = util.DecodeCheck(addr)
 	if err != nil {
 		return nil, err
 	}

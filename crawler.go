@@ -3,7 +3,6 @@ package tronWallet
 import (
 	"fmt"
 	"github.com/ethereum/go-ethereum/common/hexutil"
-	"github.com/fbsobreira/gotron-sdk/pkg/address"
 	"github.com/golang/protobuf/proto"
 	"strings"
 	"sync"
@@ -12,6 +11,7 @@ import (
 	"tronWallet/grpcClient"
 	"tronWallet/grpcClient/proto/api"
 	"tronWallet/grpcClient/proto/core"
+	"tronWallet/util"
 )
 
 type Crawler struct {
@@ -114,13 +114,13 @@ func (c *Crawler) extractOurTransactionsFromBlock(block *api.BlockExtention) []C
 		// if address is hex convert to base58
 		toAddress := hexutil.Encode(contract.ToAddress)[2:]
 		if strings.HasPrefix(toAddress, "41") == true {
-			toAddress = address.HexToAddress(toAddress).String()
+			toAddress = util.HexToAddress(toAddress).String()
 		}
 
 		// if address is hex convert to base58
 		fromAddress := hexutil.Encode(contract.OwnerAddress)[2:]
 		if strings.HasPrefix(fromAddress, "41") == true {
-			fromAddress = address.HexToAddress(fromAddress).String()
+			fromAddress = util.HexToAddress(fromAddress).String()
 		}
 
 		for _, ourAddress := range c.Addresses {

@@ -4,15 +4,14 @@ import (
 	"fmt"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/fbsobreira/gotron-sdk/pkg/address"
-	"github.com/fbsobreira/gotron-sdk/pkg/client"
-	"github.com/fbsobreira/gotron-sdk/pkg/proto/api"
-	"github.com/fbsobreira/gotron-sdk/pkg/proto/core"
 	"github.com/golang/protobuf/proto"
 	"strings"
 	"sync"
 	"time"
 	"tronWallet/enums"
 	"tronWallet/grpcClient"
+	"tronWallet/grpcClient/proto/api"
+	"tronWallet/grpcClient/proto/core"
 )
 
 type Crawler struct {
@@ -69,7 +68,7 @@ func (c *Crawler) ScanBlocks(count int) ([]CrawlResult, error) {
 	return c.prepareCrawlResultFromTransactions(allTransactions), nil
 }
 
-func (c *Crawler) getBlockData(wg *sync.WaitGroup, client *client.GrpcClient, allTransactions *[][]CrawlTransaction, num int64) {
+func (c *Crawler) getBlockData(wg *sync.WaitGroup, client *grpcClient.GrpcClient, allTransactions *[][]CrawlTransaction, num int64) {
 
 	defer wg.Done()
 

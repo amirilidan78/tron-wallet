@@ -60,18 +60,5 @@ txId, err := w.Transfer(toAddressBase58, amount)
 txId // string 
 ```
 
-### Util methods 
-- convert base58 address to hex
-```
-hex := util.Base58ToHex("TNvQe93ay9MACT26oC92sP9NkvVqqXm2Cw") // <- 41718de6b323652d1257437ace160c4f4198aae4e1
-
-```
-- convert hex address to base58
-```
-hex := util.HexToBase58("41718de6b323652d1257437ace160c4f4198aae4e1") // <- TNvQe93ay9MACT26oC92sP9NkvVqqXm2Cw
-```
-
 ### Supported networks
-- Main net
-- Shasta
-- Nile
+check `enums/nodes` file

@@ -6,10 +6,10 @@ import (
 	"errors"
 	"fmt"
 	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/fbsobreira/gotron-sdk/pkg/proto/api"
 	"github.com/golang/protobuf/proto"
 	"tronWallet/enums"
 	"tronWallet/grpcClient"
+	"tronWallet/grpcClient/proto/api"
 )
 
 func createTransactionInput(node enums.Node, fromAddressBase58 string, toAddressBase58 string, amountInSun int64) (*api.TransactionExtention, error) {

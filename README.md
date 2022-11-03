@@ -1,5 +1,5 @@
 # tron-wallet
-tron wallet package
+tron wallet package for creating and generating wallet, transferring TRX, getting wallet balance and crawling blocks to find wallet transactions
 
 ### Main methods 
 - generating tron wallet 
@@ -54,7 +54,7 @@ Example
 * // 
 	
 ```
-- transfer from wallet - /// TODO : should be implemented 
+- transfer from wallet 
 ```
 txId, err := w.Transfer(toAddressBase58, amount)
 txId // string 

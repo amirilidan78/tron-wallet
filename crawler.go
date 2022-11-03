@@ -7,6 +7,7 @@ import (
 	"github.com/fbsobreira/gotron-sdk/pkg/client"
 	"github.com/fbsobreira/gotron-sdk/pkg/proto/api"
 	"github.com/fbsobreira/gotron-sdk/pkg/proto/core"
+	"github.com/golang/protobuf/proto"
 	"strings"
 	"sync"
 	"time"
@@ -47,8 +48,6 @@ func (c *Crawler) ScanBlocks(count int) ([]CrawlResult, error) {
 		return nil, err
 	}
 
-	fmt.Println(block.BlockHeader.RawData.Number)
-
 	// check block for transaction
 	allTransactions = append(allTransactions, c.extractOurTransactionsFromBlock(block))
 	if err != nil {
@@ -58,11 +57,8 @@ func (c *Crawler) ScanBlocks(count int) ([]CrawlResult, error) {
 	blockNumber := block.BlockHeader.RawData.Number
 
 	for i := count; i > 0; i-- {
-
 		wg.Add(1)
-
 		blockNumber = blockNumber - 1
-
 		// sleep to avoid 503 error
 		time.Sleep(100 * time.Millisecond)
 		go c.getBlockData(&wg, client, &allTransactions, blockNumber)
@@ -91,41 +87,45 @@ func (c *Crawler) extractOurTransactionsFromBlock(block *api.BlockExtention) []C
 
 	var txs []CrawlTransaction
 
-	fmt.Println(txs)
-
 	for _, t := range block.Transactions {
 
 		transaction := t.Transaction
 
 		// if transaction is not success
 		if transaction.Ret[0].ContractRet != core.Transaction_Result_SUCCESS {
+			fmt.Println("transaction is not success")
 			continue
 		}
 
 		// if transaction is not tron transfer
 		if transaction.RawData.Contract[0].Type != core.Transaction_Contract_TransferContract {
+			fmt.Println("transaction is not trx transfer")
 			continue
 		}
 
-		amount := 0
-		//amount := transaction.RawData.Contract[0].Parameter.Value.Amount
+		contract := &core.TransferContract{}
+		err := proto.Unmarshal(transaction.RawData.Contract[0].Parameter.Value, contract)
+		if err != nil {
+			fmt.Println(err)
+			continue
+		}
+
+		amount := contract.Amount
 
 		// if address is hex convert to base58
-		toAddress := ""
-		//toAddress := transaction.RawData.Contract[0].Parameter.Value
+		toAddress := hexutil.Encode(contract.ToAddress)[2:]
 		if strings.HasPrefix(toAddress, "41") == true {
 			toAddress = address.HexToAddress(toAddress).String()
 		}
 
 		// if address is hex convert to base58
-		fromAddress := ""
-		//fromAddress := transaction.RawData.Contract[0].Parameter.Value.OwnerAddress
+		fromAddress := hexutil.Encode(contract.OwnerAddress)[2:]
 		if strings.HasPrefix(fromAddress, "41") == true {
 			fromAddress = address.HexToAddress(fromAddress).String()
 		}
 
 		for _, ourAddress := range c.Addresses {
-			if ourAddress == toAddress {
+			if ourAddress == toAddress || ourAddress == fromAddress {
 				txs = append(txs, CrawlTransaction{
 					TxId:        hexutil.Encode(t.GetTxid())[2:],
 					FromAddress: fromAddress,

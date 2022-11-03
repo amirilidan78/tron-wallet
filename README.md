@@ -1,6 +1,11 @@
 # tron-wallet
 tron wallet package for creating and generating wallet, transferring TRX, getting wallet balance and crawling blocks to find wallet transactions
 
+### installation 
+```
+go get github.com/Amirilidan78/tron-wallet@v0.1.0
+```
+
 ### Main methods 
 - generating tron wallet 
 ```

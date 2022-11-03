@@ -9,7 +9,7 @@ go get github.com/Amirilidan78/tron-wallet@v0.1.0
 ### Main methods 
 - generating tron wallet 
 ```
-w := Generategithub.com/Amirilidan78/tron-wallet(enums.SHASTA_NODE)
+w := GenerateTronWallet(enums.SHASTA_NODE)
 w.Address // strnig 
 w.AddressBase58 // strnig 
 w.PrivateKey // strnig 
@@ -17,7 +17,7 @@ w.PublicKey // strnig
 ```
 - creating tron wallet from private key 
 ```
-w := Creategithub.com/Amirilidan78/tron-wallet(enums.SHASTA_NODE,privateKeyHex)
+w := CreateTronWallet(enums.SHASTA_NODE,privateKeyHex)
 w.Address // strnig 
 w.AddressBase58 // strnig 
 w.PrivateKey // strnig 

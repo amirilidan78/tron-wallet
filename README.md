@@ -6,7 +6,7 @@ tron wallet package for creating and generating wallet, transferring TRX, gettin
 go get github.com/Amirilidan78/tron-wallet@v0.1.0
 ```
 
-### Main methods 
+### Wallet methods 
 - generating tron wallet 
 ```
 w := GenerateTronWallet(enums.SHASTA_NODE)
@@ -23,10 +23,15 @@ w.AddressBase58 // strnig
 w.PrivateKey // strnig 
 w.PublicKey // strnig 
 ```
-- getting wallet balance 
+- getting wallet trx balance 
 ```
 balanceInSun,err := w.Balance()
 balanceInSun // int64 
+```
+- getting wallet trc20 balance
+```
+balanceInToken,err := w.BalanceTRC20(token)
+balanceInToken // int64 
 ```
 - crawl blocks for addresses transactions 
 ```
@@ -59,10 +64,35 @@ Example
 * // 
 	
 ```
-- transfer from wallet 
+- transfer trx from wallet 
 ```
 txId, err := w.Transfer(toAddressBase58, amount)
 txId // string 
+```
+- transfer trc20 from wallet
+```
+txId, err := w.TransferTRC20(token, toAddressBase58, amount)
+txId // string 
+```
+
+### Token methods 
+- declaring token 
+```
+token := &tronWallet.Token{
+    ContractAddress: enums.SHASTA_Tether_USDT,
+}
+```
+- Getting token name 
+```
+token.GetName(w.Node, w.AddressBase58) // return string,error
+``` 
+- Getting token symbol
+```
+token.GetSymbol(w.Node, w.AddressBase58) // return string,error
+```
+- Getting token decimals 
+```
+token.GetDecimal(w.Node, w.AddressBase58) // return int64,error
 ```
 
 ### Supported networks

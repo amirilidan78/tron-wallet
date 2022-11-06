@@ -18,6 +18,10 @@ func (ca ContractAddress) Bytes() []byte {
 	return addr.Bytes()
 }
 
+func CreateContractAddress(contractAddressBase58 string) ContractAddress {
+	return ContractAddress(contractAddressBase58)
+}
+
 const (
 	SHASTA_Tether_USDT ContractAddress = "TG3XXyExBkPp9nzdajDZsozEu4BkaSJozs"
 )

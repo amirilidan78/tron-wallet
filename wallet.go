@@ -7,8 +7,10 @@ import (
 	"github.com/Amirilidan78/tron-wallet/enums"
 	"github.com/Amirilidan78/tron-wallet/grpcClient"
 	"github.com/Amirilidan78/tron-wallet/util"
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/crypto"
+	"math/big"
 )
 
 type TronWallet struct {
@@ -147,6 +149,16 @@ func (t *TronWallet) Balance() (int64, error) {
 	return b.Balance, nil
 }
 
+func (t *TronWallet) BalanceTRC20(token *Token) (int64, error) {
+
+	balance, err := token.GetBalance(t.Node, t.AddressBase58)
+	if err != nil {
+		return 0, err
+	}
+
+	return balance.Int64(), nil
+}
+
 // transaction
 
 func (t *TronWallet) Transfer(toAddressBase58 string, amountInSun int64) (string, error) {
@@ -169,6 +181,47 @@ func (t *TronWallet) Transfer(toAddressBase58 string, amountInSun int64) (string
 	err = broadcastTransaction(t.Node, tx)
 	if err != nil {
 		return "", fmt.Errorf("broadcast transaction error: %v", err)
+	}
+
+	return hexutil.Encode(tx.GetTxid())[2:], nil
+}
+
+func (t *TronWallet) TransferTRC20(token *Token, toAddressBase58 string, amountInTRC20 *big.Int) (string, error) {
+
+	c, err := grpcClient.GetGrpcClient(t.Node)
+	if err != nil {
+		return "", err
+	}
+
+	toAddress, err := util.Base58ToAddress(toAddressBase58)
+	if err != nil {
+		return "", err
+	}
+
+	ab := common.LeftPadBytes(amountInTRC20.Bytes(), 32)
+
+	req := trc20TransferMethodSignature + "0000000000000000000000000000000000000000000000000000000000000000"[len(toAddress.Hex())-4:] + toAddress.Hex()[4:]
+
+	req += common.Bytes2Hex(ab)
+
+	tx, err := c.TRC20Call(t.AddressBase58, token.ContractAddress.Base58(), req, false, trc20FeeLimit)
+	if err != nil {
+		return "", err
+	}
+
+	privateKey, err := t.PrivateKeyRCDSA()
+	if err != nil {
+		return "", err
+	}
+
+	signedTx, err := signTransaction(tx, privateKey)
+	if err != nil {
+		return "", err
+	}
+
+	err = broadcastTransaction(t.Node, signedTx)
+	if err != nil {
+		return "", err
 	}
 
 	return hexutil.Encode(tx.GetTxid())[2:], nil

@@ -5,8 +5,6 @@ import (
 	"github.com/Amirilidan78/tron-wallet/enums"
 	"github.com/Amirilidan78/tron-wallet/grpcClient"
 	"github.com/Amirilidan78/tron-wallet/util"
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/common/hexutil"
 	"math/big"
 )
 
@@ -16,38 +14,21 @@ const (
 	trc20DecimalsSignature       = "0x313ce567"
 	trc20BalanceOf               = "0x70a08231"
 	trc20TransferMethodSignature = "0xa9059cbb"
+	trc20FeeLimit                = 10000000
 )
 
 type Token struct {
-	Wallet          *TronWallet
 	ContractAddress enums.ContractAddress
 }
 
-func (t *Token) GetSymbol() (string, error) {
+func (t *Token) GetSymbol(node enums.Node, addressBase58 string) (string, error) {
 
-	c, err := grpcClient.GetGrpcClient(t.Wallet.Node)
+	c, err := grpcClient.GetGrpcClient(node)
 	if err != nil {
 		return "", err
 	}
 
-	result, err := c.TRC20Call(t.Wallet.Address, t.ContractAddress.Base58(), trc20SymbolSignature, true, 0)
-	if err != nil {
-		return "", err
-	}
-
-	data := util.ToHex(result.GetConstantResult()[0])
-
-	return c.ParseTRC20StringProperty(data)
-}
-
-func (t *Token) GetName() (string, error) {
-
-	c, err := grpcClient.GetGrpcClient(t.Wallet.Node)
-	if err != nil {
-		return "", err
-	}
-
-	result, err := c.TRC20Call(t.Wallet.Address, t.ContractAddress.Base58(), trc20NameSignature, true, 0)
+	result, err := c.TRC20Call(addressBase58, t.ContractAddress.Base58(), trc20SymbolSignature, true, 0)
 	if err != nil {
 		return "", err
 	}
@@ -57,14 +38,31 @@ func (t *Token) GetName() (string, error) {
 	return c.ParseTRC20StringProperty(data)
 }
 
-func (t *Token) GetDecimal() (*big.Int, error) {
+func (t *Token) GetName(node enums.Node, addressBase58 string) (string, error) {
 
-	c, err := grpcClient.GetGrpcClient(t.Wallet.Node)
+	c, err := grpcClient.GetGrpcClient(node)
+	if err != nil {
+		return "", err
+	}
+
+	result, err := c.TRC20Call(addressBase58, t.ContractAddress.Base58(), trc20NameSignature, true, 0)
+	if err != nil {
+		return "", err
+	}
+
+	data := util.ToHex(result.GetConstantResult()[0])
+
+	return c.ParseTRC20StringProperty(data)
+}
+
+func (t *Token) GetDecimal(node enums.Node, addressBase58 string) (*big.Int, error) {
+
+	c, err := grpcClient.GetGrpcClient(node)
 	if err != nil {
 		return nil, err
 	}
 
-	result, err := c.TRC20Call(t.Wallet.Address, t.ContractAddress.Base58(), trc20DecimalsSignature, true, 0)
+	result, err := c.TRC20Call(addressBase58, t.ContractAddress.Base58(), trc20DecimalsSignature, true, 0)
 	if err != nil {
 		return nil, err
 	}
@@ -74,16 +72,21 @@ func (t *Token) GetDecimal() (*big.Int, error) {
 	return c.ParseTRC20NumericProperty(data)
 }
 
-func (t *Token) GetBalance() (*big.Int, error) {
+func (t *Token) GetBalance(node enums.Node, addressBase58 string) (*big.Int, error) {
 
-	c, err := grpcClient.GetGrpcClient(t.Wallet.Node)
+	address, err := util.Base58ToAddress(addressBase58)
 	if err != nil {
 		return nil, err
 	}
 
-	req := trc20BalanceOf + "0000000000000000000000000000000000000000000000000000000000000000"[len(t.Wallet.Address)-2:] + t.Wallet.Address[2:]
+	c, err := grpcClient.GetGrpcClient(node)
+	if err != nil {
+		return nil, err
+	}
 
-	result, err := c.TRC20Call(t.Wallet.Address, t.ContractAddress.Base58(), req, true, 0)
+	req := trc20BalanceOf + "0000000000000000000000000000000000000000000000000000000000000000"[len(address.Hex())-2:] + address.Hex()[2:]
+
+	result, err := c.TRC20Call(addressBase58, t.ContractAddress.Base58(), req, true, 0)
 	if err != nil {
 		return nil, err
 	}
@@ -95,44 +98,8 @@ func (t *Token) GetBalance() (*big.Int, error) {
 		return nil, fmt.Errorf("contract address %s: %v", t.ContractAddress.Base58(), err)
 	}
 	if r == nil {
-		return nil, fmt.Errorf("contract address %s: invalid balance of %s", t.ContractAddress.Base58(), t.Wallet.Address)
+		return nil, fmt.Errorf("contract address %s: invalid balance of %s", t.ContractAddress.Base58(), addressBase58)
 	}
 
 	return r, nil
-}
-
-func (t *Token) Transfer(toAddress util.Address, amount *big.Int, feeLimit int64) (string, error) {
-
-	c, err := grpcClient.GetGrpcClient(t.Wallet.Node)
-	if err != nil {
-		return "", err
-	}
-
-	ab := common.LeftPadBytes(amount.Bytes(), 32)
-
-	req := trc20TransferMethodSignature + "0000000000000000000000000000000000000000000000000000000000000000"[len(toAddress.Hex())-4:] + toAddress.Hex()[4:]
-
-	req += common.Bytes2Hex(ab)
-
-	tx, err := c.TRC20Call(t.Wallet.Address, t.ContractAddress.Base58(), req, false, feeLimit)
-	if err != nil {
-		return "", err
-	}
-
-	privateKey, err := t.Wallet.PrivateKeyRCDSA()
-	if err != nil {
-		return "", err
-	}
-
-	signedTx, err := signTransaction(tx, privateKey)
-	if err != nil {
-		return "", err
-	}
-
-	err = broadcastTransaction(t.Wallet.Node, signedTx)
-	if err != nil {
-		return "", err
-	}
-
-	return hexutil.Encode(tx.GetTxid())[2:], nil
 }

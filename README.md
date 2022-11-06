@@ -97,13 +97,19 @@ token.GetDecimal(w.Node, w.AddressBase58) // return int64,error
 
 ### Supported networks
 check `enums/nodes` file
-
+alternatively you can create your own node
 ```
-I simplified this repository https://github.com/fbsobreira repository to create this package
-You can check go tron sdk for better examples and functionalities
+node := enums.CreateNode("grpc.test.com:50051")
 ```
 
-### Faucet TRX
+### Supported contracts
+check `enums/contracts` file
+alternatively you can create your own contract
+```
+contractAddress := enums.CreateContractAddress("TPYmHEhy5n8TCEfYGqW2rPxsghSfzghPDn")
+```
+
+### TRX Faucet
 Follow TronTestnet Twitter account
 @TronTest2
 .
@@ -114,8 +120,15 @@ They will transfer 10,000 test TRX (usually within five minutes).
 Each address can only be obtained once a day.
 If you need TRX for the nile testnet, please add "NILE" in your tweet.
 
-### Faucet TRC20 
+### TRC20 Faucet
 Go to https://developers.tron.network/ and connect to the discord community.
 You can than ask for usdt in #faucet channel.
 Just type !shasta_usdt YOUR_WALLET_ADDRESS and send. TronFAQ bot will send you 5000  USDT (SASHTA) soon.
+
+
+### Important
+I simplified this repository https://github.com/fbsobreira repository to create this package
+You can check go tron sdk for better examples and functionalities
+and do not use this package in production, I created this package for education purposes.
+
 

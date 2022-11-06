@@ -72,3 +72,20 @@ check `enums/nodes` file
 I simplified this repository https://github.com/fbsobreira repository to create this package
 You can check go tron sdk for better examples and functionalities
 ```
+
+### Faucet TRX
+Follow TronTestnet Twitter account
+@TronTest2
+.
+Write your address in your tweet and
+@TronTest2
+.
+They will transfer 10,000 test TRX (usually within five minutes).
+Each address can only be obtained once a day.
+If you need TRX for the nile testnet, please add "NILE" in your tweet.
+
+### Faucet TRC20 
+Go to https://developers.tron.network/ and connect to the discord community.
+You can than ask for usdt in #faucet channel.
+Just type !shasta_usdt YOUR_WALLET_ADDRESS and send. TronFAQ bot will send you 5000  USDT (SASHTA) soon.
+

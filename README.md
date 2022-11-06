@@ -132,3 +132,10 @@ You can check go tron sdk for better examples and functionalities
 and do not use this package in production, I created this package for education purposes.
 
 
+### TODOS 
+- check address balance before transfer trx
+- check address balance before transfer trc20
+- use util.Address type instead of string in wallet functions to avoid errors
+- add trc20 crawl
+- add confirmations to crawlTransaction
+- add ScanFromToBlocks functions to crawl

@@ -55,7 +55,7 @@ func (t *Token) GetSymbol(node enums.Node, addressBase58 string) (string, error)
 	return c.ParseTRC20StringProperty(data)
 }
 
-func (t *Token) GetDecimal(node enums.Node, addressBase58 string) (*big.Int, error) {
+func (t *Token) GetDecimals(node enums.Node, addressBase58 string) (*big.Int, error) {
 
 	c, err := grpcClient.GetGrpcClient(node)
 	if err != nil {

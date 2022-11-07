@@ -44,20 +44,20 @@ func TestTokenSymbol(t *testing.T) {
 func TestTokenDecimal(t *testing.T) {
 	_t := token()
 
-	_, err := _t.GetDecimal(node, invalidOwnerAddress)
+	_, err := _t.GetDecimals(node, invalidOwnerAddress)
 	if err == nil {
-		t.Errorf("GetDecimal error was incorect, got: %q, want: %q.", err, "not nil because owner address is invalid")
+		t.Errorf("GetDecimals error was incorect, got: %q, want: %q.", err, "not nil because owner address is invalid")
 	}
 
-	decimal, err := _t.GetDecimal(node, validOwnerAddress)
+	decimals, err := _t.GetDecimals(node, validOwnerAddress)
 	if err != nil {
-		t.Errorf("GetDecimal error was incorect, got: %q, want: %q.", err, "nil")
+		t.Errorf("GetDecimals error was incorect, got: %q, want: %q.", err, "nil")
 	}
-	if decimal == nil {
-		t.Errorf("GetDecimal Decimal was incorect, got: %q, want: %q.", decimal, "not nil")
+	if decimals == nil {
+		t.Errorf("GetDecimals Decimal was incorect, got: %q, want: %q.", decimals, "not nil")
 	}
-	if decimal.Int64() <= 0 {
-		t.Errorf("GetDecimal Decimal was incorect, got: %q, want: %q.", decimal, "len > 0")
+	if decimals.Int64() <= 0 {
+		t.Errorf("GetDecimals Decimal was incorect, got: %q, want: %q.", decimals, "len > 0")
 	}
 }
 

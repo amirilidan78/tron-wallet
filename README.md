@@ -147,6 +147,6 @@ and do not use this package in production, I created this package for education 
 
 
 ### TODOS 
-- check address balance before transfer trx
-- check address balance before transfer trc20
+- add address is valid function 
+- check to address before transfer trx or trc20
 - use util.Address type instead of string in wallet functions to avoid errors

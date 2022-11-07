@@ -17,5 +17,5 @@ func main() {
 		},
 	}
 
-	fmt.Println(c.ScanBlocksFromTo(28905235, 28905236))
+	fmt.Println(c.ScanBlocksFromTo(28905305, 28905307))
 }

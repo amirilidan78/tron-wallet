@@ -50,7 +50,7 @@ c := &Crawler{
 	}
 	
 res, err := c.ScanBlocks(40) // scan latest 40 block on block chain and extract addressess transactions 
-
+res, err := c.ScanBlocksFromTo(28905305, 28905307) // or scan block from to number
 Example 
 // *
 {
@@ -59,10 +59,18 @@ Example
         "tranasctions": {
             {
                 "tx_id": "6afbc5758d49e8d8bedddd903edbfc01c5f11ebfbaa6237e887294a6fc9394a2",
-                "from_address": "TMaxbcktAkSQiwvz9eQ7GqvVBa99n5U555",
+                "from_address": "TJnsY5bGiwuPCQFismQDwyVTPAn7M88888",
                 "to_address": "TY3PJu3VY8xVUc5BjYwJtyRgP7TfivV666",
-                "amount": "195500",
-            }
+                "amount": "195500", // sun
+                "symbol": "TRX",
+            },
+            {
+                "tx_id": "61624fffb31d09b9fe7252cd743733a5890c2a9077698d4a9bcb3d70ebb28777",
+                "from_address": "TSw5FSuWhTAcaJmBUVFY9fUY4ihwx588b6",
+                "to_address": "TJnsY5bGiwuPCQFismQDwyVTPAn7M88888",
+                "amount": "10000", // in token sub value 
+                "symbol": "USDT",
+            },
         }
     },
     ...
@@ -142,6 +150,3 @@ and do not use this package in production, I created this package for education 
 - check address balance before transfer trx
 - check address balance before transfer trc20
 - use util.Address type instead of string in wallet functions to avoid errors
-- add trc20 crawl
-- add confirmations to crawlTransaction
-- add ScanFromToBlocks functions to crawl

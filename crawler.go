@@ -32,7 +32,8 @@ type CrawlTransaction struct {
 	TxId        string
 	FromAddress string
 	ToAddress   string
-	Amount      uint64
+	Amount      int64
+	Symbol      string
 }
 
 func (c *Crawler) ScanBlocks(count int) ([]CrawlResult, error) {
@@ -125,49 +126,109 @@ func (c *Crawler) extractOurTransactionsFromBlock(block *api.BlockExtention) []C
 
 		// if transaction is not success
 		if transaction.Ret[0].ContractRet != core.Transaction_Result_SUCCESS {
-			fmt.Println("transaction isnot success")
+			fmt.Println("transaction is not success")
 			continue
 		}
 
-		// if transaction is not tron transfer
-		if transaction.RawData.Contract[0].Type != core.Transaction_Contract_TransferContract {
+		// if transaction is not tron transfer or erc20 transfer
+		if transaction.RawData.Contract[0].Type != core.Transaction_Contract_TransferContract && transaction.RawData.Contract[0].Type != core.Transaction_Contract_TriggerSmartContract {
 			continue
 		}
 
-		contract := &core.TransferContract{}
-		err := proto.Unmarshal(transaction.RawData.Contract[0].Parameter.Value, contract)
-		if err != nil {
-			fmt.Println(err)
-			continue
+		var crawlTransaction *CrawlTransaction = nil
+
+		if transaction.RawData.Contract[0].Type == core.Transaction_Contract_TransferContract {
+			contract := &core.TransferContract{}
+			err := proto.Unmarshal(transaction.RawData.Contract[0].Parameter.Value, contract)
+			if err != nil {
+				fmt.Println(err)
+				continue
+			}
+			crawlTransaction = c.prepareTrxTransaction(t, contract)
+		} else if transaction.RawData.Contract[0].Type == core.Transaction_Contract_TriggerSmartContract {
+			contract := &core.TriggerSmartContract{}
+			err := proto.Unmarshal(transaction.RawData.Contract[0].Parameter.Value, contract)
+			if err != nil {
+				fmt.Println(err)
+				continue
+			}
+			crawlTransaction = c.prepareTrc20Transaction(t, contract)
 		}
 
-		amount := contract.Amount
-
-		// if address is hex convert to base58
-		toAddress := hexutil.Encode(contract.ToAddress)[2:]
-		if strings.HasPrefix(toAddress, "41") == true {
-			toAddress = util.HexToAddress(toAddress).String()
-		}
-
-		// if address is hex convert to base58
-		fromAddress := hexutil.Encode(contract.OwnerAddress)[2:]
-		if strings.HasPrefix(fromAddress, "41") == true {
-			fromAddress = util.HexToAddress(fromAddress).String()
-		}
-
-		for _, ourAddress := range c.Addresses {
-			if ourAddress == toAddress || ourAddress == fromAddress {
-				txs = append(txs, CrawlTransaction{
-					TxId:        hexutil.Encode(t.GetTxid())[2:],
-					FromAddress: fromAddress,
-					ToAddress:   toAddress,
-					Amount:      uint64(amount),
-				})
+		if crawlTransaction != nil {
+			for _, ourAddress := range c.Addresses {
+				if ourAddress == crawlTransaction.ToAddress || ourAddress == crawlTransaction.FromAddress {
+					txs = append(txs, *crawlTransaction)
+				}
 			}
 		}
+
 	}
 
 	return txs
+}
+
+func (c *Crawler) prepareTrxTransaction(t *api.TransactionExtention, contract *core.TransferContract) *CrawlTransaction {
+
+	// if address is hex convert to base58
+	toAddress := hexutil.Encode(contract.ToAddress)[2:]
+	if strings.HasPrefix(toAddress, "41") == true {
+		toAddress = util.HexToAddress(toAddress).String()
+	}
+
+	// if address is hex convert to base58
+	fromAddress := hexutil.Encode(contract.OwnerAddress)[2:]
+	if strings.HasPrefix(fromAddress, "41") == true {
+		fromAddress = util.HexToAddress(fromAddress).String()
+	}
+
+	return &CrawlTransaction{
+		TxId:        hexutil.Encode(t.GetTxid())[2:],
+		FromAddress: fromAddress,
+		ToAddress:   toAddress,
+		Amount:      contract.Amount,
+		Symbol:      "TRX",
+	}
+}
+
+func (c *Crawler) prepareTrc20Transaction(t *api.TransactionExtention, contract *core.TriggerSmartContract) *CrawlTransaction {
+
+	tokenTransferData, validTokenData := util.ParseTrc20TokenTransfer(util.ToHex(contract.Data)[2:])
+
+	if validTokenData == false {
+		return nil
+	}
+
+	// if contractAddress is hex convert to base58
+	contractAddress := hexutil.Encode(contract.ContractAddress)[2:]
+	if strings.HasPrefix(contractAddress, "41") == true {
+		contractAddress = util.HexToAddress(contractAddress).String()
+	}
+
+	// if address is hex convert to base58
+	toAddress := tokenTransferData.To
+	if strings.HasPrefix(toAddress, "41") == true {
+		toAddress = util.HexToAddress(toAddress).String()
+	}
+
+	// if address is hex convert to base58
+	fromAddress := hexutil.Encode(contract.OwnerAddress)[2:]
+	if strings.HasPrefix(fromAddress, "41") == true {
+		fromAddress = util.HexToAddress(fromAddress).String()
+	}
+
+	token := &Token{
+		ContractAddress: enums.CreateContractAddress(contractAddress),
+	}
+	symbol, _ := token.GetSymbol(c.Node, fromAddress)
+
+	return &CrawlTransaction{
+		TxId:        hexutil.Encode(t.GetTxid())[2:],
+		FromAddress: fromAddress,
+		ToAddress:   toAddress,
+		Amount:      tokenTransferData.Value.Int64(),
+		Symbol:      symbol,
+	}
 }
 
 func (c *Crawler) prepareCrawlResultFromTransactions(transactions [][]CrawlTransaction) []CrawlResult {

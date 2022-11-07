@@ -13,7 +13,7 @@ import (
 	"unicode/utf8"
 )
 
-// TRC20Call make cosntant calll
+// TRC20Call make constant call
 func (g *GrpcClient) TRC20Call(fromAddressBase58 string, contractAddressBase58 string, data string, constant bool, feeLimit int64) (*api.TransactionExtention, error) {
 
 	var err error

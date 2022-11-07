@@ -2,16 +2,22 @@ package test
 
 import (
 	"testing"
-	"time"
 )
 
-// Crawler test
-func TestCrawler(t *testing.T) {
+// ScanBlocks test
+func TestScanBlocks(t *testing.T) {
+	c := crawler()
+	_, err := c.ScanBlocks(5)
+	if err != nil {
+		t.Errorf("ScanBlocks error was incorect, got: %q, want: %q.", err, "nil")
+	}
+}
+
+// ScanBlocksFromTo test
+func TestScanBlocksFromTo(t *testing.T) {
 	c := crawler()
 
-	time.Sleep(time.Second * 5)
-
-	res, err := c.ScanBlocks(10)
+	res, err := c.ScanBlocksFromTo(28905235, 28905236)
 	if err != nil {
 		t.Errorf("ScanBlocks error was incorect, got: %q, want: %q.", err, "nil")
 	}

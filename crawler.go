@@ -1,6 +1,7 @@
 package tronWallet
 
 import (
+	"errors"
 	"fmt"
 	"github.com/Amirilidan78/tron-wallet/enums"
 	"github.com/Amirilidan78/tron-wallet/grpcClient"
@@ -71,6 +72,35 @@ func (c *Crawler) ScanBlocks(count int) ([]CrawlResult, error) {
 	return c.prepareCrawlResultFromTransactions(allTransactions), nil
 }
 
+func (c *Crawler) ScanBlocksFromTo(from int, to int) ([]CrawlResult, error) {
+
+	if to-from < 1 {
+		return nil, errors.New("to number should be more than from number")
+	}
+
+	var wg sync.WaitGroup
+
+	var allTransactions [][]CrawlTransaction
+
+	client, err := grpcClient.GetGrpcClient(c.Node)
+	if err != nil {
+		return nil, err
+	}
+
+	for i := to; i > from; i-- {
+		wg.Add(1)
+		// sleep to avoid 503 error
+		time.Sleep(100 * time.Millisecond)
+		go c.getBlockData(&wg, client, &allTransactions, int64(i))
+	}
+
+	wg.Wait()
+
+	return c.prepareCrawlResultFromTransactions(allTransactions), nil
+}
+
+// ==================== private ==================== //
+
 func (c *Crawler) getBlockData(wg *sync.WaitGroup, client *grpcClient.GrpcClient, allTransactions *[][]CrawlTransaction, num int64) {
 
 	defer wg.Done()
@@ -95,13 +125,12 @@ func (c *Crawler) extractOurTransactionsFromBlock(block *api.BlockExtention) []C
 
 		// if transaction is not success
 		if transaction.Ret[0].ContractRet != core.Transaction_Result_SUCCESS {
-			fmt.Println("transaction is not success")
+			fmt.Println("transaction isnot success")
 			continue
 		}
 
 		// if transaction is not tron transfer
 		if transaction.RawData.Contract[0].Type != core.Transaction_Contract_TransferContract {
-			fmt.Println("transaction is not trx transfer")
 			continue
 		}
 

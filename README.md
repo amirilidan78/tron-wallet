@@ -6,6 +6,12 @@ tron wallet package for creating and generating wallet, transferring TRX, gettin
 go get github.com/Amirilidan78/tron-wallet@v0.1.0
 ```
 
+### Test
+test for `Crawler`, `TronWallet` and `Token` located at `/test`
+```
+go test ./test
+```
+
 ### Wallet methods 
 - generating tron wallet 
 ```

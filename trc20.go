@@ -21,14 +21,14 @@ type Token struct {
 	ContractAddress enums.ContractAddress
 }
 
-func (t *Token) GetSymbol(node enums.Node, addressBase58 string) (string, error) {
+func (t *Token) GetName(node enums.Node, addressBase58 string) (string, error) {
 
 	c, err := grpcClient.GetGrpcClient(node)
 	if err != nil {
 		return "", err
 	}
 
-	result, err := c.TRC20Call(addressBase58, t.ContractAddress.Base58(), trc20SymbolSignature, true, 0)
+	result, err := c.TRC20Call(addressBase58, t.ContractAddress.Base58(), trc20NameSignature, true, 0)
 	if err != nil {
 		return "", err
 	}
@@ -38,14 +38,14 @@ func (t *Token) GetSymbol(node enums.Node, addressBase58 string) (string, error)
 	return c.ParseTRC20StringProperty(data)
 }
 
-func (t *Token) GetName(node enums.Node, addressBase58 string) (string, error) {
+func (t *Token) GetSymbol(node enums.Node, addressBase58 string) (string, error) {
 
 	c, err := grpcClient.GetGrpcClient(node)
 	if err != nil {
 		return "", err
 	}
 
-	result, err := c.TRC20Call(addressBase58, t.ContractAddress.Base58(), trc20NameSignature, true, 0)
+	result, err := c.TRC20Call(addressBase58, t.ContractAddress.Base58(), trc20SymbolSignature, true, 0)
 	if err != nil {
 		return "", err
 	}

@@ -43,11 +43,11 @@ func GenerateTronWallet(node enums.Node) *TronWallet {
 	}
 }
 
-func CreateTronWallet(node enums.Node, privateKeyHex string) *TronWallet {
+func CreateTronWallet(node enums.Node, privateKeyHex string) (*TronWallet, error) {
 
 	privateKey, err := privateKeyFromHex(privateKeyHex)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 
 	publicKey, _ := getPublicKeyFromPrivateKey(privateKey)
@@ -62,7 +62,7 @@ func CreateTronWallet(node enums.Node, privateKeyHex string) *TronWallet {
 		AddressBase58: addressBase58,
 		PrivateKey:    privateKeyHex,
 		PublicKey:     publicKeyHex,
-	}
+	}, nil
 }
 
 // struct functions

@@ -3,7 +3,7 @@ tron wallet package for creating and generating wallet, transferring TRX, gettin
 
 ### Installation 
 ```
-go get github.com/Amirilidan78/tron-wallet@v0.1.0
+go get github.com/amir-ranjbar-dev/tron-wallet@v1.0.0
 ```
 
 ### Test

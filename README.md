@@ -146,5 +146,5 @@ You can check go tron sdk for better examples and functionalities
 and do not use this package in production, I created this package for education purposes.
 
 
-### Donate
-fill free to donate `TUE66D1BT79FQcJE7fwf5vdfu3BYM4ph9Y`
+### Donation
+Address `TUE66D1BT79FQcJE7fwf5vdfu3BYM4ph9Y`
